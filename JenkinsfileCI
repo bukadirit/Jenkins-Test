@@ -10,10 +10,6 @@ pipeline {
   agent {
       dockerfile {
         filename 'Dockerfile'
-        registryUrl "https://hub.docker.com/repository/docker/btrawally/img"
-        registryCredentialsId: "jenkins-token"
-        args '-v $HOME/.m2:/root/.m2:z -v $HOME/.npm:/.npm:z'
-        reuseNode true
       }
   }
 
