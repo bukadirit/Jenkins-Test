@@ -8,7 +8,6 @@ pipeline {
   }
 
   agent any
-
   stages {
         stage ('Artifactory configuration') {
             steps {
@@ -21,13 +20,15 @@ pipeline {
         }
 
         stage('Compile-TypeScript'){
-            stage('candidate-information-handler'){
-                steps{
-                    dir('candidate-information-handler'){
-                        sh ' npm run build'
+            parallel{
+                stage('candidate-information-handler'){
+                    steps{
+                        dir('candidate-information-handler'){
+                            sh ' npm run build'
+                        }
                     }
                 }
-            }  
+           }
         }
     }
 }
