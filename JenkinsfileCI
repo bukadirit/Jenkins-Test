@@ -9,7 +9,7 @@ pipeline {
 
   agent {
       dockerfile {
-        image "btrawally/img:latest"
+        filename 'Dockerfile'
         registryUrl "https://hub.docker.com/repository/docker/btrawally/img"
         registryCredentialsId "docker-token"
         args '-v $HOME/.m2:/root/.m2:z -v $HOME/.npm:/.npm:z'
