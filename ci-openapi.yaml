@@ -1,0 +1,318 @@
+---
+openapi: 3.0.0
+info:
+  title: Candidate Information API
+  description: Candidate Information API
+  contact:
+    email: btrawally@ets.org
+  version: 1.0.0
+servers:
+  - url: https://virtserver.swaggerhub.com/bukadirit/ap1v1/1.0.0
+    description: SwaggerHub API Auto Mocking
+paths:
+  /candidate:
+    get:
+      tags:
+        - Candidate
+      summary: Get all candidates
+      description: Get and return a list of all candidates
+      operationId: getAllCI
+      responses:
+        "200":
+          description: Retrieved all candidates succesfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Candidate'
+        default:
+          description: Unexpected Error/ Input validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponseModel'
+      security:
+        - ApiKeyAuth: []
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${getCandidateInfoHandlerFunction.Arn}:live/invocations
+        passthroughBehavior: when_no_match
+    post:
+      tags:
+        - Candidate
+      summary: Add new candidate to database
+      description: Create and return candidate's information
+      operationId: createCI
+      requestBody:
+        description: Created user object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Candidate'
+        required: true
+      responses:
+        "200":
+          description: Created and saved candidate information successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Candidate'
+        default:
+          description: Unexpected Error/ Input validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponseModel'
+      security:
+        - ApiKeyAuth: []
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${getCandidateInfoHandlerFunction.Arn}:live/invocations
+        passthroughBehavior: when_no_match
+  /candidate/{candidateId}:
+    get:
+      tags:
+        - Candidate
+      summary: Get candidate
+      description: Get and return a single candidate
+      operationId: getCI
+      parameters:
+        - name: candidateId
+          in: path
+          description: The Candidate's Unique ID
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Retrieved candidate succesfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Candidate'
+        default:
+          description: Unexpected Error/ Input validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponseModel'
+      security:
+        - ApiKeyAuth: []
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${getCandidateInfoHandlerFunction.Arn}:live/invocations
+        passthroughBehavior: when_no_match
+    delete:
+      tags:
+        - Candidate
+      summary: Delete candidate entry
+      description: Deletes candidate information and returns success
+      operationId: deleteCI
+      parameters:
+        - name: candidateId
+          in: path
+          description: The Candidate's Unique ID
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Candidate entry deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/successResponseModel'
+        default:
+          description: Unexpected Error/ Input validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponseModel'
+      security:
+        - ApiKeyAuth: []
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${getCandidateInfoHandlerFunction.Arn}:live/invocations
+        passthroughBehavior: when_no_match
+    patch:
+      tags:
+        - Candidate
+      summary: Update existing candidate in database
+      description: Update and return candidate's information
+      operationId: updateCI
+      parameters:
+        - name: candidateId
+          in: path
+          description: The Candidate's Unique ID
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: Created user object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Candidate'
+        required: true
+      responses:
+        "200":
+          description: Updated and saved candidate information successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Candidate'
+        default:
+          description: Unexpected Error/ Input validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponseModel'
+      security:
+        - ApiKeyAuth: []
+      x-amazon-apigateway-integration:
+        type: aws_proxy
+        httpMethod: POST
+        uri:
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${getCandidateInfoHandlerFunction.Arn}:live/invocations
+        passthroughBehavior: when_no_match
+components:
+  schemas:
+    Candidate:
+      type: object
+      properties:
+        candidateId:
+          type: string
+          description: The candidates id
+        firstName:
+          type: string
+          description: Candidates first name
+        lastName:
+          type: string
+          description: Candidates last name
+        email:
+          type: string
+          description: Candidates email
+        dob:
+          type: string
+          description: Candidates birth date
+        sortKey:
+          type: string
+          description: Database sort key
+        ssn:
+          type: string
+          description: Candidates Social Security
+        updateDate:
+          type: string
+          description: Last date this record was updated
+        createDate:
+          type: string
+          description: Date this record was created
+        address:
+          $ref: '#/components/schemas/CandidateAdr'
+    errorResponseModel:
+      type: object
+      properties:
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/errorResponseModelErrors'
+    successResponseModel:
+      type: object
+      properties:
+        message:
+          type: array
+          items:
+            $ref: '#/components/schemas/successResponseModelMessage'
+    CandidateAdrDflt:
+      type: object
+      properties:
+        city:
+          type: string
+          description: Current city
+        countryCode:
+          type: string
+          description: Current country code
+        line1:
+          type: string
+          description: Address line 1
+        line2:
+          type: string
+          description: Address line 2 eg. APT#
+        stateCode:
+          type: string
+          description: Current state code
+        zip4:
+          type: string
+          description: Zip code if any
+        zip5:
+          type: string
+          description: Zip2 code if any
+      description: Candidates's default residence
+    CandidateAdr:
+      type: object
+      properties:
+        dflt:
+          $ref: '#/components/schemas/CandidateAdrDflt'
+      description: Candidate's known addresses
+    errorResponseModelErrors:
+      properties:
+        errorCode:
+          type: string
+        errorDescription:
+          type: string
+    successResponseModelMessage:
+      properties:
+        msg:
+          type: string
+  requestBodies:
+    UserArray:
+      description: List of user object
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Candidate'
+      required: true
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      name: x-api-key
+      in: header
+x-amazon-apigateway-cors:
+  allowOrigins: '*'
+  allowHeaders: Authorization,*
+  allowMethods: '*'
+  allowCredentials: true
+x-amazon-apigateway-request-validator: params-only
+x-amazon-apigateway-gateway-responses:
+  DEFAULT_4XX:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
+      gatewayresponse.header.Access-Control-Allow-Headers: '''*'''
+    responseTemplates:
+      application/json: '{ "errors": [ "errorCode": 400, "errorDescription":"$context.error.validationErrorString" ]}'
+    statusCode: 400
+  DEFAULT_5XX:
+    responseParameters:
+      gatewayresponse.header.Access-Control-Allow-Origin: '''*'''
+      gatewayresponse.header.Access-Control-Allow-Headers: '''*'''
+    responseTemplates:
+      application/json: '{ "errors": [ "errorCode": 500, "errorDescription": $context.error.messageString ]}'
+    statusCode: 500

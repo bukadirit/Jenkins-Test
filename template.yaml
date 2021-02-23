@@ -1,0 +1,235 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  ApMod Candidate Information API
+
+Parameters:
+  deployEnv:
+    Type: String
+    AllowedValues:
+      - sbx
+      - dev
+      - stg
+      - tst
+      - prd
+    Default: 'tst'
+  s3ArtifactBucketName:
+    Type: String
+    Default: 'candidateinformationartifactbucket'
+  candInfoTableName:
+    Type: String
+    Default: ''
+
+Mappings:
+  constants:
+    timeouts:
+      functionTimeoutSeconds : 300
+      queueVisibilityTimeoutSeconds: 61
+      ReceiveMessageWaitTimeSeconds: 5
+  tst:
+    IAM:
+      PermissionsBoundary: arn:aws:iam::099810534560:policy/ets-tst-iad-generic-permissionsboundary
+    Concurrency:
+      ReservedConcurrentExecutions : 1
+    Logs:
+      RetentionInDays: 14
+  sbx:
+    IAM:
+      PermissionsBoundary: arn:aws:iam::455920691004:policy/ets-sbx-iad-generic-permissionsboundary
+    Concurrency:
+      ReservedConcurrentExecutions: 1
+    Logs:
+      RetentionInDays: 14
+  dev:
+    IAM:
+      PermissionsBoundary: arn:aws:iam::248847483068:policy/ets-dev-iad-generic-permissionsboundary
+    Concurrency:
+      ReservedConcurrentExecutions: 5
+    Logs:
+      RetentionInDays: 14
+  stg:
+    IAM:
+      PermissionsBoundary: arn:aws:iam::742021474654:policy/ets-stg-iad-generic-permissionsboundary
+    Concurrency:
+      ReservedConcurrentExecutions: 50
+    Logs:
+      RetentionInDays: 14
+  prd:
+    IAM:
+      PermissionsBoundary: arn:aws:iam::551871666883:policy/ets-prd-iad-generic-permissionsboundary
+    Concurrency:
+      ReservedConcurrentExecutions: 50
+
+
+Resources:
+  candInfo:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-candinfo-dynamodb"
+      BillingMode: PAY_PER_REQUEST
+      KeySchema:
+        - AttributeName: candidateId
+          KeyType: HASH
+        - AttributeName: sk
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: "candidateId"
+          AttributeType: "S"
+        - AttributeName: "sk"
+          AttributeType: "S"
+
+  getCandidateInfoAPIHandlerFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      PermissionsBoundary: !FindInMap [ !Ref deployEnv, IAM, PermissionsBoundary ]
+      RoleName: !Sub "${AWS::StackName}-get-candidate-info-api-handler-role"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AdministratorAccess
+      Policies:
+        - PolicyName: putXrayTraceLogAccessPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - xray:PutTraceSegments
+                  - xray:PutTelemetryRecords
+                  - cloudwatch:PutMetricData
+                Resource: '*'
+        - PolicyName: dbCrudAccessPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'dynamodb:GetItem'
+                  - 'dynamodb:DeleteItem'
+                  - 'dynamodb:PutItem'
+                  - 'dynamodb:Scan'
+                  - 'dynamodb:Query'
+                  - 'dynamodb:UpdateItem'
+                  - 'dynamodb:BatchWriteItem'
+                  - 'dynamodb:BatchGetItem'
+                  - 'dynamodb:DescribeTable'
+                  - 'dynamodb:ConditionCheckItem'
+                Resource:
+                  - !Sub
+                    - arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${tableName}
+                    - { tableName:  !Ref candInfo }
+
+  getCandidateInfoHandlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-candinfohandler-lambda"
+      CodeUri: candidate-information-handler/dist/
+      Handler: candidate-information-handler.handler
+      Runtime: nodejs12.x
+      AutoPublishAlias: live
+      Timeout: 60
+      MemorySize: 128
+      Tracing: Active
+      ReservedConcurrentExecutions: !FindInMap [ !Ref deployEnv, Concurrency, ReservedConcurrentExecutions ]
+      Environment:
+        Variables:
+          deployEnv: !Ref deployEnv
+          candInfoTableName: !Ref candInfo
+          region: 'us-east-2'
+      Role: !GetAtt getCandidateInfoAPIHandlerFunctionRole.Arn
+      Events:
+        CandidatesInfo:
+          Type: Api
+          Properties:
+            Path: /candidate
+            Method: get
+            RestApiId: !Ref getCandidateInfoRestApi
+        Addcandidateinfo:
+          Type: Api
+          Properties:
+            Path: /candidate
+            Method: post
+            RestApiId: !Ref getCandidateInfoRestApi
+        CandidatesInfoForOne:
+          Type: Api
+          Properties:
+            Path: /candidate/{candidateId}
+            Method: get
+            RestApiId: !Ref getCandidateInfoRestApi
+        Updatecandidateinfo:
+          Type: Api
+          Properties:
+            Path: /candidate/{candidateId}
+            Method: patch
+            RestApiId: !Ref getCandidateInfoRestApi
+        Deletecandidateinfo:
+          Type: Api
+          Properties:
+            Path: /candidate/{candidateId}
+            Method: delete
+            RestApiId: !Ref getCandidateInfoRestApi
+
+  getCandidateInfoRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub "${AWS::StackName}-api"
+      StageName: !Ref deployEnv
+      EndpointConfiguration: REGIONAL
+      Cors:
+        AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        AllowOrigin: "'*'"
+      TracingEnabled: true
+      AccessLogSetting:
+        DestinationArn: !GetAtt RestApiAccessLogGroup.Arn
+        Format: '{"requestId":"$context.requestId","ip":"$context.identity.sourceIp","caller":"$context.identity.caller","user":"$context.identity.user","requestTime":"$context.requestTime","eventType":"$context.eventType","routeKey":"$context.routeKey","status":"$context.status","connectionId":"$context.connectionId"}'
+      MethodSettings:
+        - DataTraceEnabled: true
+          HttpMethod: "*"
+          LoggingLevel: INFO
+          ResourcePath: "/*"
+          MetricsEnabled: true
+      Auth:
+        UsagePlan:
+          CreateUsagePlan: PER_API
+        AddDefaultAuthorizerToCorsPreflight: false
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location:
+              Fn::Join:
+                - ''
+                - - 's3://'
+                  - !Ref s3ArtifactBucketName
+                  - '/ci-openapi.yaml'
+
+  RestApiAccessLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub ${AWS::StackName}-api-loggroup
+      RetentionInDays: !FindInMap [ !Ref deployEnv, Logs, RetentionInDays ]
+
+Outputs:
+  restApiUrl:
+    Description: Candidate Information domain api gateway endpoint url
+    Value:  !Sub https://${getCandidateInfoRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage
+    Export:
+      Name: !Sub "${AWS::StackName}-rest-api-url"
+  restApiId:
+    Description: Candidate Information domain api gateway apiId
+    Value:  !Sub ${getCandidateInfoRestApi}
+    Export:
+      Name: !Sub "${AWS::StackName}-rest-api-id"
+  candInfo:
+    Description: candidate information tableName
+    Value: !Ref candInfo
+    Export:
+      Name: !Sub "${AWS::StackName}-candInfo-table-name"
+

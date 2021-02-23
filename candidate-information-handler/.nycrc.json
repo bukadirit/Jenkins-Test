@@ -1,0 +1,18 @@
+{
+    "check-coverage": true,
+    "reporter": [
+        "lcov",
+        "text"
+    ],
+    "exclude": [
+        "test/"
+    ],
+    "extension": [
+        ".ts"
+    ],
+    "report-dir": "coverage-report",
+    "branches": 70,
+    "lines": 70,
+    "functions": 70,
+    "statements": 70
+}

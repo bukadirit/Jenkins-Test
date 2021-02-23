@@ -1,0 +1,33 @@
+pipeline {
+
+  options {
+    timeout(time: 30, unit: 'MINUTES') //terminate pipeline if it does not finish in 30 mins
+    parallelsAlwaysFailFast() // Fail all parallel stages if anyone fails
+    skipStagesAfterUnstable() // Skip all stages if any one stage fails
+    buildDiscarder(logRotator(numToKeepStr: '3'))
+  }
+
+  agent any
+
+  stages {
+        stage ('Artifactory configuration') {
+            steps {
+                rtServer (
+                    id: "ARTIFACTORY_SERVER",
+                    url: "https://btrawally.jfrog.io/",
+                    credentialsId: "jenkins-artifactory"
+                )
+            }
+        }
+
+        stage('Compile-TypeScript'){
+            stage('candidate-information-handler'){
+                steps{
+                    dir('candidate-information-handler'){
+                        sh ' npm run build'
+                    }
+                }
+            }  
+        }
+    }
+}
