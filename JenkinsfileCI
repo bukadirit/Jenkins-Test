@@ -23,7 +23,7 @@ pipeline {
             parallel{
                 stage('candidate-information-handler'){
                     steps{
-                        dir('candidate-information-handler'){
+                        dir('Jenkins-Test/candidate-information-handler'){
                             sh ' npm run build'
                         }
                     }
