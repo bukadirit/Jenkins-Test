@@ -8,32 +8,11 @@ pipeline {
   }
 
   agent {
-      dockerfile {
-        filename 'Dockerfile'
-      }
-  }
-
-  stages {
-        stage ('Artifactory configuration') {
-            steps {
-                rtServer (
-                    id: "ARTIFACTORY_SERVER",
-                    url: "https://btrawally.jfrog.io/",
-                    credentialsId: "jenkins-artifactory"
-                )
-            }
-        }
-
-        stage('Compile-TypeScript'){
-            parallel{
-                stage('candidate-information-handler'){
-                    steps{
-                        dir('Jenkins-Test/candidate-information-handler'){
-                            sh ' npm run build'
-                        }
-                    }
-                }
-           }
-        }
+    dockerfile {
+      filename 'Dockerfile'
+      registryUrl "https://hub.docker.com/repository/docker/btrawally/img"
+      args '-v $HOME/.m2:/root/.m2:z -v $HOME/.npm:/.npm:z'
+      reuseNode true
+    }
   }
 }
