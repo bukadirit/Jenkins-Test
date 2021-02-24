@@ -15,4 +15,12 @@ pipeline {
       reuseNode true
     }
   }
+
+  stages {
+      stage ('Artifactory configuration') {
+        steps {
+          echo "Done"
+        }
+      }
+  }
 }
